@@ -1,7 +1,7 @@
 const std = @import("std");
 
 pub export const some_number: f32 = 3.14159;
-pub export const num_balls: usize = 100;
+pub export const num_balls: usize = 80;
 const px_per_m = 100;
 const collision_impulse = 100.0 * px_per_m;
 const max_velocity = 500;

@@ -30,6 +30,12 @@ function drawBall(x, y)  {
     renderCtx.beginPath();
     renderCtx.arc(x, y, ballRadius(), 0, 2 * Math.PI);
     renderCtx.fill();
+
+    renderCtx.strokeStyle = "white";
+    renderCtx.lineWidth = 5;
+    renderCtx.beginPath();
+    renderCtx.arc(x, y, ballRadius(), 0, 2 * Math.PI);
+    renderCtx.stroke();
 }
 
 function renderFrame() {
