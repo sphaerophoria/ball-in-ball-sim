@@ -34,7 +34,7 @@ function drawBall(x, y)  {
     renderCtx.strokeStyle = "white";
     renderCtx.lineWidth = 5;
     renderCtx.beginPath();
-    renderCtx.arc(x, y, ballRadius(), 0, 2 * Math.PI);
+    renderCtx.arc(x, y, ballRadius() - 2.5, 0, 2 * Math.PI);
     renderCtx.stroke();
 }
 
@@ -64,9 +64,17 @@ function logWasm(msg, len) {
     console.log(msg_s);
 }
 
+var last = window.performance.now()
+var last_step = window.performance.now();
+
 function step() {
-    // FIXME: Actual timer
-    wasm.instance.exports.step(30.0 / 1000.0);
+    const now = window.performance.now();
+    const step_len_ms = 1;
+    last = now;
+    while (last_step < last) {
+        wasm.instance.exports.step(step_len_ms / 1000.0);
+        last_step += step_len_ms;
+    }
     renderFrame();
 }
 

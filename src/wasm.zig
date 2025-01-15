@@ -1,10 +1,9 @@
 const std = @import("std");
 
 pub export const some_number: f32 = 3.14159;
-pub export const num_balls: usize = 80;
+pub export const num_balls: usize = 150;
 const px_per_m = 100;
 const collision_impulse = 100.0 * px_per_m;
-const max_velocity = 500;
 
 pub extern fn logWasm(msg: [*c]const u8, len: usize) void;
 
@@ -38,8 +37,6 @@ pub const globals = struct {
 };
 
 pub export fn init(container_radius: f32, ball_radius: f32) void {
-    const hello = "hello world";
-    logWasm(hello, hello.len);
     globals.ball_radius = ball_radius;
     globals.container_radius = container_radius;
 
@@ -56,26 +53,19 @@ pub export fn step(delta: f32) void {
     applyAcceleration(delta);
     applyBorderCollision(delta);
     applyBallCollision(delta);
-    applyDrag();
+    applyDrag(delta);
     applyVelocity(delta);
 }
 
-fn applyDrag() void {
-    const air_drag = 0.95;
+fn applyDrag(delta: f32) void {
+    const air_drag = 2 * px_per_m;
     for (0..num_balls) |ball_idx| {
         const vel = &globals.ball_velocities[ball_idx];
-        vel.* *= @splat(air_drag);
+        var adjustment = -vel.*;
+        adjustment /= @splat(length(vel.*));
+        adjustment *= @splat(air_drag * delta);
+        vel.* += adjustment;
     }
-}
-fn capVelocities() void {
-    for (0..num_balls) |ball_idx| {
-        const vel = &globals.ball_velocities[ball_idx];
-        const vel_mag = length(vel.*);
-        if (vel_mag > max_velocity) {
-            vel.* = vel.* * @as(Vec2, @splat(max_velocity / vel_mag));
-        }
-    }
-
 }
 fn applyVelocity(delta: f32) void {
     for (0..num_balls) |ball_idx| {
@@ -124,16 +114,12 @@ fn applyBallCollision(delta: f32) void {
 
             const b_rel_a_proj = dot(b_vel_rel_a, intersection_normal);
 
-            const dampen_factor: f32 = 0.7;
-            var a_impulse = -intersection_normal * @as(Vec2, @splat(intersection_amount / delta / 2.0 - b_rel_a_proj / 2.0));
-            a_impulse *= Vec2{dampen_factor, dampen_factor};
-            const b_impulse = -a_impulse;
+            const dampen_factor: f32 = 0.8;
+            var impulse = -intersection_normal * @as(Vec2, @splat(intersection_amount / delta / 2.0 - b_rel_a_proj / 2.0));
+            impulse *= Vec2{dampen_factor, dampen_factor};
 
-            a_velocity.* += a_impulse;
-            b_velocity.* += b_impulse;
-
-            //globals.ball_positions[a_idx] += a_movement;
-            //globals.ball_positions[b_idx] += b_movement;
+            a_velocity.* += impulse;
+            b_velocity.* -= impulse;
         }
     }
 }
@@ -148,9 +134,8 @@ fn applyBorderCollision(delta: f32) void {
         const center_dist = length(towards_center);
         towards_center /= @splat(center_dist);
 
-        // How far inside are we
         const intersection_amount = center_dist - dist_of_minimal_intersection;
-        if (intersection_amount > globals.ball_radius * 2 or intersection_amount < 0) {
+        if (intersection_amount > globals.ball_radius or intersection_amount < 0) {
             continue;
         }
 
@@ -163,14 +148,6 @@ fn applyBorderCollision(delta: f32) void {
         }
 
         const impulse = towards_center * @as(Vec2, @splat(intersection_amount / delta - vel_proj));
-        std.log.info("impulse: {any}, intersection_amount: {d}, delta: {d}, vel_proj: {d}, vel: {d}", .{impulse, intersection_amount, delta, vel_proj, ball_vel.*});
-
         ball_vel.* += impulse;
-        std.log.info("new ball velocity: {any}", .{ball_vel.*});
-        //globals.ball_positions[ball_idx] += towards_center * @as(Vec2, @splat(intersection_amount));
     }
-}
-
-pub export fn add(a: i32, b: i32) i32 {
-    return a + b;
 }
